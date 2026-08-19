@@ -91,7 +91,7 @@ func applyAdobeGeo(page *rod.Page, geo *adobeGeoInfo) {
 	_ = (proto.EmulationSetLocaleOverride{Locale: locale}).Call(page)
 }
 
-func verifyAdobeBrowserEgress(page *rod.Page, expectedIP string) (string, error) {
+func verifyAdobeBrowserEgress(page *rod.Page) (string, error) {
 	checkPage := page.Timeout(30 * time.Second)
 	if err := checkPage.Navigate("https://api.ipify.org?format=json"); err != nil {
 		return "", fmt.Errorf("浏览器代理出口检查失败: %w", err)
@@ -116,9 +116,6 @@ func verifyAdobeBrowserEgress(page *rod.Page, expectedIP string) (string, error)
 	result.IP = strings.TrimSpace(result.IP)
 	if net.ParseIP(result.IP) == nil {
 		return "", fmt.Errorf("浏览器代理出口 IP 格式异常")
-	}
-	if expectedIP != "" && result.IP != strings.TrimSpace(expectedIP) {
-		return result.IP, fmt.Errorf("浏览器出口与代理预检不一致: 浏览器=%s, 代理=%s", result.IP, expectedIP)
 	}
 	return result.IP, nil
 }

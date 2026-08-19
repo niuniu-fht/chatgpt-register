@@ -134,11 +134,11 @@ func registerBrowser(ctx context.Context, in Input) (result *Result, err error) 
 			fingerprint.screenW, fingerprint.screenH, fingerprint.cores, fingerprint.memory)
 	}
 	if strings.TrimSpace(in.Proxy) != "" {
-		browserIP, verifyErr := verifyAdobeBrowserEgress(page, geo.IP)
+		browserIP, verifyErr := verifyAdobeBrowserEgress(page)
 		if verifyErr != nil {
 			return nil, fmt.Errorf("%w: %v", ErrProxyRejected, verifyErr)
 		}
-		in.logf("浏览器代理出口确认: %s（与代理预检一致）", browserIP)
+		in.logf("浏览器代理出口确认: %s", browserIP)
 	}
 	go page.EachEvent(
 		func(e *proto.RuntimeExceptionThrown) {
