@@ -2,6 +2,7 @@ package adobereg
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -85,6 +86,13 @@ func registerBrowser(ctx context.Context, in Input) (result *Result, err error) 
 		if extension := strings.TrimSpace(os.Getenv("YESCAPTCHA_EXTENSION_PATH")); extension != "" {
 			if info, extensionErr := os.Stat(extension); extensionErr == nil && info.IsDir() {
 				l = l.Set("load-extension", extension)
+				if version, manifestErr := extensionManifestVersion(extension); manifestErr == nil {
+					in.logf("YesCaptcha 插件目录已加载: 版本 %s，路径=%s", version, extension)
+				} else {
+					in.logf("YesCaptcha 插件目录已加载但读取 manifest 失败: %v", manifestErr)
+				}
+			} else {
+				in.logf("YesCaptcha 插件目录不可用: %s", extension)
 			}
 		}
 	} else if strings.TrimSpace(in.BrowserBin) != "" {
@@ -568,6 +576,9 @@ func waitForSuccess(ctx context.Context, browser *rod.Browser, page *rod.Page, i
 		in.logf("验证码由浏览器插件处理，等待插件完成并返回 Adobe 控制台")
 	}
 	captchaAttempted := false
+	startPuzzleSeen := false
+	pluginNoActionLogged := false
+	var captchaSeenAt time.Time
 	lastProgressLog := time.Now()
 	for time.Now().Before(deadline) {
 		if adobeConsoleOpen(browser, in.Email) {
@@ -594,6 +605,11 @@ func waitForSuccess(ctx context.Context, browser *rod.Browser, page *rod.Page, i
 			return ErrAccountAlreadyExists
 		}
 		if captchaText(lower) || quickCaptchaFrame(pg) || quickStartPuzzle(pg) {
+			if quickStartPuzzle(pg) && !startPuzzleSeen {
+				startPuzzleSeen = true
+				captchaSeenAt = time.Now()
+				in.logf("检测到 Arkose Start puzzle，等待 YesCaptcha 插件接管")
+			}
 			if in.Captcha == nil {
 				if in.ExtensionCaptcha {
 					if captchaWaitStarted.IsZero() {
@@ -602,6 +618,10 @@ func waitForSuccess(ctx context.Context, browser *rod.Browser, page *rod.Page, i
 					if time.Since(lastProgressLog) >= 10*time.Second {
 						in.logf("仍在等待浏览器插件完成验证码，已持续 %d 秒", int(time.Since(captchaWaitStarted).Seconds()))
 						lastProgressLog = time.Now()
+					}
+					if !pluginNoActionLogged && !captchaSeenAt.IsZero() && time.Since(captchaSeenAt) >= 15*time.Second {
+						pluginNoActionLogged = true
+						in.logf("YesCaptcha 插件已加载，但未接管当前验证码（Start puzzle 持续显示超过 15 秒）")
 					}
 					time.Sleep(500 * time.Millisecond)
 					continue
@@ -632,6 +652,23 @@ func waitForSuccess(ctx context.Context, browser *rod.Browser, page *rod.Page, i
 		time.Sleep(500 * time.Millisecond)
 	}
 	return fmt.Errorf("等待 Adobe 账户控制台超时")
+}
+
+func extensionManifestVersion(extensionDir string) (string, error) {
+	data, err := os.ReadFile(filepath.Join(extensionDir, "manifest.json"))
+	if err != nil {
+		return "", err
+	}
+	var manifest struct {
+		Version string `json:"version"`
+	}
+	if err := json.Unmarshal(data, &manifest); err != nil {
+		return "", err
+	}
+	if strings.TrimSpace(manifest.Version) == "" {
+		return "", fmt.Errorf("manifest version 为空")
+	}
+	return manifest.Version, nil
 }
 
 func adobeConsoleOpen(browser *rod.Browser, email string) (ready bool) {

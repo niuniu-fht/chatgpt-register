@@ -9,6 +9,17 @@ import (
 	"testing"
 )
 
+func TestExtensionManifestVersion(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "manifest.json"), []byte(`{"version":"1.4.7"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	version, err := extensionManifestVersion(dir)
+	if err != nil || version != "1.4.7" {
+		t.Fatalf("version=%q err=%v", version, err)
+	}
+}
+
 func TestInferNameDefaultsForCompactAddress(t *testing.T) {
 	first, last := InferName("loganfoster257@example.test")
 	if first != "Alex" || last != "Morgan" {
