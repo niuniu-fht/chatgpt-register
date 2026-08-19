@@ -381,6 +381,11 @@ func advanceToProfile(page *rod.Page, in Input) error {
 		pg := page.CancelTimeout().Timeout(8 * time.Second)
 		button, err := pg.ElementR("button", `^\s*(Continue|继续)\s*$`)
 		if err != nil {
+			// Adobe removes Continue on the existing-account screen. Check the
+			// rendered text after the selector timeout before reporting a timeout.
+			if isAccountAlreadyExistsText(quickBodyText(page.CancelTimeout().Timeout(1500 * time.Millisecond))) {
+				return ErrAccountAlreadyExists
+			}
 			if profileVisible(page) {
 				in.logf("个人资料页面已显示")
 				return nil
@@ -416,6 +421,9 @@ func isAccountAlreadyExistsText(text string) bool {
 	lower := strings.ToLower(text)
 	return strings.Contains(lower, "already exists") ||
 		strings.Contains(lower, "account exists") ||
+		strings.Contains(lower, "already registered") ||
+		strings.Contains(lower, "already associated with this email") ||
+		strings.Contains(lower, "sign in instead") ||
 		strings.Contains(text, "账户已存在") ||
 		strings.Contains(text, "帐号已存在") ||
 		strings.Contains(text, "账号已存在")

@@ -40,6 +40,8 @@ func TestAccountAlreadyExistsText(t *testing.T) {
 	for _, text := range []string{
 		"An account already exists with this email address.",
 		"This Adobe account exists. Sign in instead.",
+		"This email is already registered. Sign in instead.",
+		"This address is already associated with this email account.",
 		"Adobe 账户已存在",
 		"此账号已存在，请登录",
 	} {
