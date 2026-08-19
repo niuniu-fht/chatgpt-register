@@ -33,6 +33,12 @@ func (p *Producer) configureStartOptions(opts *StartOptions) error {
 	if opts.BrowserMode == "" {
 		opts.BrowserMode = "cloak"
 	}
+	// The YesCaptcha extension is loaded by the CloakBrowser launcher. A
+	// persisted UI value of "system" must not silently start a plain browser
+	// without the extension when the extension path is configured.
+	if strings.TrimSpace(os.Getenv("YESCAPTCHA_EXTENSION_PATH")) != "" && opts.BrowserMode == "system" {
+		opts.BrowserMode = "cloak"
+	}
 	if opts.BrowserMode != "system" && opts.BrowserMode != "cloak" {
 		return fmt.Errorf("Adobe 浏览器模式不正确")
 	}
