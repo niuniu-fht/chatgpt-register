@@ -136,6 +136,15 @@ func EnsureCloakBrowser(ctx context.Context) (string, error) {
 		}
 		cmd := exec.CommandContext(ctx, command, "-m", "cloakbrowser", "update")
 		output, err := cmd.CombinedOutput()
+		if err != nil && strings.Contains(strings.ToLower(string(output)), "no module named") {
+			install := exec.CommandContext(ctx, command, "-m", "pip", "install", "--upgrade", "cloakbrowser")
+			if installOutput, installErr := install.CombinedOutput(); installErr != nil {
+				lastErr = fmt.Errorf("安装 cloakbrowser 失败: %w (%s)", installErr, strings.TrimSpace(string(installOutput)))
+				continue
+			}
+			cmd = exec.CommandContext(ctx, command, "-m", "cloakbrowser", "update")
+			output, err = cmd.CombinedOutput()
+		}
 		if err == nil {
 			if path := DiscoverCloakBrowser(); path != "" {
 				return path, nil
