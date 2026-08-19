@@ -375,7 +375,7 @@ func safeFailureScreenshot(browser *rod.Browser, preferred *rod.Page) (png []byt
 
 func advanceToProfile(page *rod.Page, in Input) error {
 	for attempt := 1; attempt <= 3; attempt++ {
-		if isAccountAlreadyExistsText(quickBodyText(page.CancelTimeout().Timeout(750 * time.Millisecond))) {
+		if accountAlreadyExistsVisible(page) {
 			return ErrAccountAlreadyExists
 		}
 		pg := page.CancelTimeout().Timeout(8 * time.Second)
@@ -383,7 +383,7 @@ func advanceToProfile(page *rod.Page, in Input) error {
 		if err != nil {
 			// Adobe removes Continue on the existing-account screen. Check the
 			// rendered text after the selector timeout before reporting a timeout.
-			if isAccountAlreadyExistsText(quickBodyText(page.CancelTimeout().Timeout(1500 * time.Millisecond))) {
+			if accountAlreadyExistsVisible(page) {
 				return ErrAccountAlreadyExists
 			}
 			if profileVisible(page) {
@@ -407,7 +407,7 @@ func advanceToProfile(page *rod.Page, in Input) error {
 				in.logf("个人资料页面已显示")
 				return nil
 			}
-			if isAccountAlreadyExistsText(quickBodyText(page.CancelTimeout().Timeout(750 * time.Millisecond))) {
+			if accountAlreadyExistsVisible(page) {
 				return ErrAccountAlreadyExists
 			}
 			time.Sleep(500 * time.Millisecond)
@@ -424,9 +424,31 @@ func isAccountAlreadyExistsText(text string) bool {
 		strings.Contains(lower, "already registered") ||
 		strings.Contains(lower, "already associated with this email") ||
 		strings.Contains(lower, "sign in instead") ||
+		strings.Contains(text, "このメールアドレスのアカウントは既に存在します") ||
+		(strings.Contains(text, "メールアドレス") && strings.Contains(text, "既に存在")) ||
+		(strings.Contains(text, "メールアドレス") && strings.Contains(text, "既に登録")) ||
 		strings.Contains(text, "账户已存在") ||
 		strings.Contains(text, "帐号已存在") ||
 		strings.Contains(text, "账号已存在")
+}
+
+// accountAlreadyExistsVisible also inspects validation/error nodes. Adobe's
+// signup form renders the existing-account message beside the email input and
+// may omit it from the page body text during the React transition.
+func accountAlreadyExistsVisible(page *rod.Page) bool {
+	if isAccountAlreadyExistsText(quickBodyText(page.CancelTimeout().Timeout(750 * time.Millisecond))) {
+		return true
+	}
+	result, err := page.CancelTimeout().Timeout(1200 * time.Millisecond).Eval(`() => {
+  const nodes = Array.from(document.querySelectorAll(
+    '[role="alert"], [aria-live], [aria-invalid="true"], [class*="error"], [class*="Error"]'
+  ));
+  return nodes.map(node => {
+    const described = node.getAttribute('aria-describedby') || '';
+    return [node.innerText || '', node.getAttribute('aria-label') || '', described].join(' ');
+  }).join('\n');
+}`)
+	return err == nil && isAccountAlreadyExistsText(result.Value.Str())
 }
 
 func profileVisible(page *rod.Page) bool {
