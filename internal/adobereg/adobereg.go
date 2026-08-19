@@ -13,6 +13,7 @@ import (
 var (
 	ErrAccountAlreadyExists = errors.New("Adobe 账户已存在")
 	ErrProxyRejected        = errors.New("Adobe 代理节点不可用")
+	ErrCloakSeatBusy        = errors.New("CloakBrowser 并发席位已占用")
 )
 
 type Input struct {

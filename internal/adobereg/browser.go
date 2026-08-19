@@ -82,6 +82,11 @@ func registerBrowser(ctx context.Context, in Input) (result *Result, err error) 
 		if !in.Headless {
 			l = l.Set("start-maximized", "")
 		}
+		if extension := strings.TrimSpace(os.Getenv("YESCAPTCHA_EXTENSION_PATH")); extension != "" {
+			if info, extensionErr := os.Stat(extension); extensionErr == nil && info.IsDir() {
+				l = l.Set("load-extension", extension)
+			}
+		}
 	} else if strings.TrimSpace(in.BrowserBin) != "" {
 		l = l.Bin(in.BrowserBin).Set("window-size", fingerprint.windowSize())
 	} else if bin, ok := FindChrome(); ok {
@@ -278,7 +283,7 @@ func cloakLicenseStatusError(path string) error {
 	}
 	switch code {
 	case 76:
-		return fmt.Errorf("CloakBrowser 并发席位已占用，请等待上一浏览器会话释放")
+		return fmt.Errorf("%w，请等待上一浏览器会话释放", ErrCloakSeatBusy)
 	case 77:
 		return fmt.Errorf("CloakBrowser license 无效、已过期或未加载")
 	case 78:

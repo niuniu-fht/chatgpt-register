@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -289,21 +290,41 @@ func (p *Producer) produceOne(ctx context.Context, account *models.AdobeRegistra
 				appendLog("YesCaptcha 已启用但 API Key 为空")
 			}
 		}
+		if strings.TrimSpace(os.Getenv("YESCAPTCHA_EXTENSION_PATH")) != "" {
+			// The browser extension owns CAPTCHA interaction when configured;
+			// keeping the API classifier off prevents duplicate clicks.
+			captcha = nil
+			appendLog("YesCaptcha 浏览器插件已启用，使用有头浏览器自动识别")
+		}
 		if err == nil {
-			result, err = p.register(ctx, adobereg.Input{
-				Email: account.Email, Password: password,
-				FirstName: firstName, LastName: lastName,
-				BirthYear: account.BirthYear, BirthMonth: account.BirthMonth,
-				Country: account.Country, Headless: opts.Headless, Captcha: captcha,
-				Proxy:      proxy,
-				BrowserBin: opts.BrowserPath, CloakBrowser: opts.BrowserMode == "cloak",
-				Log: func(format string, args ...any) {
-					appendLog(fmt.Sprintf(format, args...))
-				},
-				SaveShot: func(png []byte) {
-					_ = p.updateAccount(account.ID, map[string]any{"shot": png})
-				},
-			})
+			for seatAttempt := 1; ; seatAttempt++ {
+				result, err = p.register(ctx, adobereg.Input{
+					Email: account.Email, Password: password,
+					FirstName: firstName, LastName: lastName,
+					BirthYear: account.BirthYear, BirthMonth: account.BirthMonth,
+					Country: account.Country, Headless: opts.Headless, Captcha: captcha,
+					Proxy:      proxy,
+					BrowserBin: opts.BrowserPath, CloakBrowser: opts.BrowserMode == "cloak",
+					Log: func(format string, args ...any) {
+						appendLog(fmt.Sprintf(format, args...))
+					},
+					SaveShot: func(png []byte) {
+						_ = p.updateAccount(account.ID, map[string]any{"shot": png})
+					},
+				})
+				if !errors.Is(err, adobereg.ErrCloakSeatBusy) {
+					break
+				}
+				appendLog(fmt.Sprintf("CloakBrowser 席位仍被占用，第 %d 次等待；15 秒后重试当前账号", seatAttempt))
+				select {
+				case <-ctx.Done():
+					err = ctx.Err()
+				case <-time.After(15 * time.Second):
+				}
+				if ctx.Err() != nil {
+					break
+				}
+			}
 		}
 		if err == nil || errors.Is(err, adobereg.ErrAccountAlreadyExists) ||
 			errors.Is(err, context.Canceled) || ctx.Err() != nil {
