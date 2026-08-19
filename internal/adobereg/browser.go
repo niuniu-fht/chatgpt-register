@@ -101,6 +101,10 @@ func registerBrowser(ctx context.Context, in Input) (result *Result, err error) 
 	if err != nil {
 		return nil, fmt.Errorf("启动浏览器: %w", err)
 	}
+	// A lost CDP socket can make browser.Close return before Chromium exits.
+	// Always kill the launcher-owned process tree so failed tasks do not leave
+	// stale renderer processes or hold the CloakBrowser session.
+	defer l.Kill()
 	// Rod otherwise emulates its built-in Mac/Chrome 114 laptop on every page,
 	// overriding CloakBrowser's native UA, language and viewport fingerprint.
 	browser := rod.New().ControlURL(controlURL).NoDefaultDevice()
