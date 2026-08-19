@@ -622,7 +622,7 @@ func waitForSuccess(ctx context.Context, browser *rod.Browser, page *rod.Page, i
 					}
 					if !pluginNoActionLogged && !captchaSeenAt.IsZero() && time.Since(captchaSeenAt) >= 15*time.Second {
 						pluginNoActionLogged = true
-						in.logf("YesCaptcha 插件已加载，但未接管当前验证码（Start puzzle 持续显示超过 15 秒）")
+						in.logf("YesCaptcha 插件暂未出现可见动作（Start puzzle 已持续 15 秒），继续等待插件完成")
 					}
 					time.Sleep(500 * time.Millisecond)
 					continue
