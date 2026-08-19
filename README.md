@@ -162,6 +162,8 @@ ADDR=8080 ./chatgpt-register.exe
 
 程序是单文件服务，静态页面已嵌入，运行目录只需保留可执行文件和 `adskull.db`。Adobe 生产默认使用 CloakBrowser。程序启动 Adobe 生产任务时会优先检测 `~/.cloakbrowser/chromium-*` 缓存；缓存为空时自动调用官方 CLI 下载当前稳定版本，不固定 Chromium 版本号。仓库不包含浏览器二进制。
 
+> **运行注意：** CloakBrowser 免费许可证按单并发席位运行。停止或重启前先停止生产任务，再停止服务并确认 CloakBrowser 子进程退出；直接强制结束服务可能留下孤立浏览器进程，导致下一次出现 CDP 连接断开或并发席位占用。完整的本地/远程重启步骤见项目根目录 `AGENTS.md`。
+
 ```powershell
 # Windows PowerShell
 $env:ADDR = "9010"
