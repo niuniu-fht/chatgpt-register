@@ -34,11 +34,6 @@ func registerBrowser(ctx context.Context, in Input) (result *Result, err error) 
 	if geo != nil {
 		locale, acceptLanguage = adobeLocale(geo.CountryCode)
 		in.logf("代理预检通过: 出口 IP=%s, 位置=%s/%s, 时区=%s", geo.IP, geo.CountryCode, geo.City, geo.Timezone.ID)
-		if strings.TrimSpace(in.Proxy) != "" && strings.TrimSpace(in.Country) != "" &&
-			!strings.EqualFold(in.Country, geo.CountryCode) {
-			return nil, fmt.Errorf("%w: 需要 %s，实际出口为 %s/%s (%s)",
-				ErrProxyRejected, strings.ToUpper(in.Country), geo.CountryCode, geo.City, geo.IP)
-		}
 	}
 	profileDir, err := os.MkdirTemp("", "adobereg-profile-*")
 	if err != nil {

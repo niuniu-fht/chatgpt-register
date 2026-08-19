@@ -310,7 +310,7 @@ func (p *Producer) produceOne(ctx context.Context, account *models.AdobeRegistra
 			break
 		}
 		if errors.Is(err, adobereg.ErrProxyRejected) && attempt < proxyAttempts {
-			appendLog(fmt.Sprintf("当前代理不符合要求，切换下一条代理: %v", err))
+			appendLog(fmt.Sprintf("当前代理出口校验失败，切换下一条代理: %v", err))
 			err = nil
 			continue
 		}
