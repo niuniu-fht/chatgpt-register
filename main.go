@@ -78,6 +78,24 @@ func main() {
 		api.GET("/produce/status", h.ProduceStatus)
 		api.POST("/produce/stop", h.ProduceStop)
 		api.GET("/browser/status", h.BrowserStatus)
+		api.POST("/adobe/start", h.AdobeStart)
+		api.GET("/adobe/status", h.AdobeStatus)
+		api.POST("/adobe/stop", h.AdobeStop)
+		api.POST("/adobe/focus", h.AdobeFocus)
+		api.GET("/adobe/accounts", h.AdobeAccountList)
+		api.POST("/adobe/accounts", h.AdobeAccountCreate)
+		api.POST("/adobe/accounts/import", h.AdobeAccountImport)
+		api.POST("/adobe/accounts/export/preview", h.AdobeAccountExportPreview)
+		api.POST("/adobe/accounts/export", h.AdobeAccountExport)
+		api.PUT("/adobe/accounts/:id", h.AdobeAccountUpdate)
+		api.DELETE("/adobe/accounts/:id", h.AdobeAccountDelete)
+		api.POST("/adobe/accounts/:id/retry", h.AdobeAccountRetry)
+		api.POST("/adobe/accounts/:id/stop", h.AdobeAccountStop)
+		api.GET("/adobe/accounts/:id/logs", h.AdobeAccountLog)
+		api.GET("/adobe/accounts/:id/shot", h.AdobeAccountShot)
+		api.POST("/adobe/produce", h.AdobeProduce)
+		api.GET("/adobe/produce/status", h.AdobeProduceStatus)
+		api.POST("/adobe/produce/stop", h.AdobeProduceStop)
 
 		api.GET("/mailboxes", h.MailboxList)
 		api.POST("/mailboxes", h.MailboxCreate)
@@ -102,7 +120,7 @@ func main() {
 	}
 	httpFS := http.FS(sub)
 	r.StaticFS("/static", httpFS)
-	for _, p := range []string{"login", "dashboard", "mailboxes", "accounts", "settings"} {
+	for _, p := range []string{"login", "dashboard", "mailboxes", "accounts", "adobe", "settings"} {
 		p := p
 		r.GET("/"+p, func(c *gin.Context) { c.FileFromFS(p+".html", httpFS) })
 	}

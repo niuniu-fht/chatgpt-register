@@ -158,6 +158,46 @@ GOOS=linux go build -o chatgpt-register-linux .
 ADDR=8080 ./chatgpt-register.exe
 ```
 
+### Adobe 服务器部署
+
+程序是单文件服务，静态页面已嵌入，运行目录只需保留可执行文件和 `adskull.db`。Adobe 生产默认使用 CloakBrowser。程序启动 Adobe 生产任务时会优先检测 `~/.cloakbrowser/chromium-*` 缓存；缓存为空时自动调用官方 CLI 下载当前稳定版本，不固定 Chromium 版本号。仓库不包含浏览器二进制。
+
+```powershell
+# Windows PowerShell
+$env:ADDR = "9010"
+# 可选：指定自定义浏览器文件；省略后使用自动检测和下载
+# $env:CLOAK_BROWSER_PATH = "C:\path\to\cloakbrowser\chrome.exe"
+.\chatgpt-register.exe
+```
+
+```bash
+# Linux
+ADDR=9010 \
+# 可选：省略后使用 ~/.cloakbrowser 的自动检测和下载
+# CLOAK_BROWSER_PATH=/opt/cloakbrowser/chrome \
+ADOBE_HEADLESS=1 \
+ADOBE_MAX_CONCURRENCY=1 \
+./chatgpt-register-linux
+```
+
+首次使用自动下载前，在运行账户下安装并登录 CloakBrowser CLI：
+
+```bash
+python3 -m pip install --upgrade cloakbrowser
+python3 -m cloakbrowser login
+```
+
+之后项目会执行 `python3 -m cloakbrowser update`，自动获取当前平台的最新稳定浏览器。Windows 使用 `python -m cloakbrowser`，Linux 使用 `python3 -m cloakbrowser`。
+
+可在“系统设置 → 代理配置”维护代理池，启用后 ChatGPT 与 Adobe 注册都会按账号轮转代理。Adobe 的浏览器访问和 YesCaptcha 请求使用该账号分配到的同一个代理。服务器也可使用环境变量配置：
+
+```bash
+ADOBE_PROXY_ENABLED=1
+ADOBE_PROXY_LIST='http://user:pass@host:port,socks5://host:port'
+```
+
+支持 `http://`、`https://`、`socks5://` 以及 `host:port:user:pass` 格式。显式环境变量优先于数据库中的 Adobe 路径和代理列表配置。
+
 > 数据保存在同目录 `adskull.db`，已加入 `.gitignore`，请勿提交。
 
 ---

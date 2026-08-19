@@ -1,6 +1,6 @@
 /* ===== 邮箱管理 ===== */
 let mbPage = 1;
-const size = 20;
+let mbPageSize = 20;
 let mbCache = {};
 
 const MB_STATUS = {
@@ -19,7 +19,7 @@ async function loadMailboxes() {
   try {
     const q = document.getElementById('mb-search').value.trim();
     const status = document.getElementById('mb-filter').value;
-    const params = new URLSearchParams({ page: mbPage, size });
+    const params = new URLSearchParams({ page: mbPage, size: mbPageSize });
     if (q) params.set('q', q);
     if (status) params.set('status', status);
     const r = await api('/api/mailboxes?' + params);
@@ -42,7 +42,7 @@ async function loadMailboxes() {
           </button>
         </td>
       </tr>`).join('');
-    const maxPage = Math.max(1, Math.ceil((d.total || 0) / size));
+    const maxPage = Math.max(1, Math.ceil((d.total || 0) / mbPageSize));
     renderPager('mb-pager', mbPage, maxPage, p => { mbPage = p; loadMailboxes(); });
     syncBatchBar();
   } finally {
@@ -435,6 +435,11 @@ document.getElementById('mb-search').addEventListener('keydown', e => {
   if (e.key === 'Enter') { mbPage = 1; loadMailboxes(); }
 });
 document.getElementById('mb-filter').addEventListener('change', () => { mbPage = 1; loadMailboxes(); });
+document.getElementById('mb-page-size').addEventListener('change', e => {
+  mbPageSize = Number(e.target.value) || 20;
+  mbPage = 1;
+  loadMailboxes();
+});
 
 /* 点遮罩关闭取件弹窗时也要停轮询 */
 document.getElementById('mail-modal').addEventListener('click', e => {

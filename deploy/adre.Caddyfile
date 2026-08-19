@@ -1,0 +1,5 @@
+adre.code2alita.com {
+    encode zstd gzip
+    reverse_proxy 10.255.1.1:9010
+    log
+}

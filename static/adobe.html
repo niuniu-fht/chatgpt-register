@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adobe 账号管理 · 注册管理</title>
+  <link rel="stylesheet" href="/static/style.css?v=16">
+</head>
+<body data-page="adobe">
+<div class="layout">
+  <main class="main">
+    <h1 class="page-title">Adobe 账号管理</h1>
+
+    <div class="produce-bar">
+      <div class="produce-stat"><span class="produce-num" id="ad-pending">0</span><span class="produce-lbl">待生产</span></div>
+      <span class="produce-dot">·</span>
+      <div class="produce-stat"><span class="produce-num running" id="ad-running">0</span><span class="produce-lbl">在跑</span></div>
+      <span class="produce-dot">·</span>
+      <div class="produce-stat"><span class="produce-num ok" id="ad-registered">0</span><span class="produce-lbl">已注册</span></div>
+      <span class="produce-dot">·</span>
+      <div class="produce-stat"><span class="produce-num bad" id="ad-failed">0</span><span class="produce-lbl">失败</span></div>
+      <span class="produce-msg" id="ad-message"></span>
+      <div class="produce-actions">
+        <button class="px-btn danger" id="ad-stop" type="button" style="display:none" onclick="stopAdobeProduce()">停止</button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <input id="ad-search" class="px-input search" placeholder="搜索邮箱、姓名或备注">
+      <select id="ad-status" class="px-input">
+        <option value="">全部状态</option>
+        <option value="pending">待生产</option>
+        <option value="registering">注册中</option>
+        <option value="registered">已注册</option>
+		<option value="exported">已出库</option>
+        <option value="register_failed">注册失败</option>
+      </select>
+	  <select id="ad-page-size" class="px-input" title="每页数量">
+		<option value="20">20 条/页</option>
+		<option value="50">50 条/页</option>
+	  </select>
+      <button class="px-btn" type="button" onclick="openAdobeImport()">批量导入</button>
+      <button class="px-btn" type="button" onclick="openAdobeEditor()">添加账号</button>
+	  <button class="px-btn" id="ad-export-btn" type="button" onclick="exportAdobeAccounts()" disabled>导出邮箱</button>
+      <button class="px-btn primary" id="ad-produce-btn" type="button" onclick="openAdobeProduce()">生产</button>
+    </div>
+
+    <div class="table-wrap">
+      <table class="px-table adobe-account-table">
+        <thead><tr>
+		  <th class="select-cell"><input id="ad-select-all" type="checkbox" aria-label="选择当前页已注册账号" onchange="toggleAdobePage(this.checked)"></th>
+          <th>邮箱</th><th>姓名</th><th>生日 / 地区</th><th>状态</th><th>更新时间</th><th>操作</th>
+        </tr></thead>
+        <tbody id="ad-rows"></tbody>
+      </table>
+      <div class="pager" id="ad-pager"></div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-mask" id="ad-export-modal" style="display:none">
+  <div class="modal px-panel" style="width:640px">
+    <h2 id="ad-export-title">确认导出邮箱</h2>
+    <div class="import-sub" id="ad-export-sub"></div>
+    <textarea id="ad-export-text" class="px-input adobe-export-lines" readonly spellcheck="false"></textarea>
+    <div class="modal-actions">
+      <button class="px-btn" type="button" onclick="closeModal('ad-export-modal')">取消</button>
+      <button class="px-btn primary" id="ad-export-confirm" type="button" onclick="confirmAdobeExport()">确认出库并下载</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="ad-edit-modal" style="display:none">
+  <div class="modal px-panel adobe-edit-modal">
+    <h2 id="ad-edit-title">添加 Adobe 账号</h2>
+    <div class="adobe-form-grid">
+      <label><span>邮箱</span><input id="ad-email" class="px-input" type="email" autocomplete="off"></label>
+      <label><span>密码</span><input id="ad-password" class="px-input" type="password" autocomplete="new-password" placeholder="留空自动生成"></label>
+      <label><span>名字</span><input id="ad-first-name" class="px-input" autocomplete="off"></label>
+      <label><span>姓氏</span><input id="ad-last-name" class="px-input" autocomplete="off"></label>
+      <label><span>出生年份</span><input id="ad-birth-year" class="px-input" type="number" min="1900" max="2007" value="1994"></label>
+      <label><span>出生月份</span><input id="ad-birth-month" class="px-input" type="number" min="1" max="12" value="6"></label>
+      <label><span>国家/地区</span><input id="ad-country" class="px-input" maxlength="2" value="SG"></label>
+      <label><span>备注</span><input id="ad-note" class="px-input"></label>
+    </div>
+    <div class="modal-actions">
+      <button class="px-btn" type="button" onclick="closeModal('ad-edit-modal')">取消</button>
+      <button class="px-btn primary" type="button" onclick="saveAdobeAccount()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="ad-import-modal" style="display:none">
+  <div class="modal px-panel" style="width:640px">
+    <h2>批量导入 Adobe 账号</h2>
+    <div class="import-sub">只需粘贴邮箱，支持每行一个或使用空格分隔。姓名自动随机生成，国家/地区固定为新加坡。</div>
+    <textarea id="ad-import-lines" class="px-input adobe-import-lines" placeholder="name1@example.com&#10;name2@example.com"></textarea>
+    <div class="modal-actions">
+      <button class="px-btn" type="button" onclick="closeModal('ad-import-modal')">取消</button>
+      <button class="px-btn primary" type="button" onclick="importAdobeAccounts()">导入</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="ad-produce-modal" style="display:none">
+  <div class="modal px-panel" style="width:420px">
+    <h2>生产 Adobe 账号</h2>
+    <div class="import-sub">按创建顺序处理待生产账号，只有进入 Adobe 账户控制台才计为成功。</div>
+    <label class="produce-field"><span>生产数量</span><input id="ad-produce-count" class="px-input" type="number" min="1" value="1"></label>
+    <label class="produce-field"><span>并发数量</span><input id="ad-produce-concurrency" class="px-input" type="number" min="1" max="5" value="1"></label>
+	<label class="produce-field"><span>浏览器</span><select id="ad-browser-mode" class="px-input" onchange="onAdobeBrowserMode()"><option value="cloak">CloakBrowser</option><option value="system">系统 Chrome</option></select></label>
+	<label class="produce-field" id="ad-cloak-path-field"><span>CloakBrowser 路径</span><input id="ad-cloak-path" class="px-input" autocomplete="off" spellcheck="false" placeholder="CLOAK_BROWSER_PATH"></label>
+    <label class="switch-row"><input id="ad-headless" type="checkbox" checked><span class="switch"></span><span>无头模式</span></label>
+    <div class="modal-actions">
+      <button class="px-btn" type="button" onclick="closeModal('ad-produce-modal')">取消</button>
+      <button class="px-btn primary" type="button" onclick="startAdobeProduce()">开始生产</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="ad-log-modal" style="display:none">
+  <div class="modal px-panel" style="width:680px">
+    <h2 id="ad-log-title">执行日志</h2>
+    <pre id="ad-log-body" class="log-body"></pre>
+    <div class="modal-actions">
+      <button class="px-btn ghost" id="ad-shot-btn" type="button" style="display:none;margin-right:auto" onclick="showAdobeShot()">错误截图</button>
+      <button class="px-btn" type="button" onclick="closeAdobeLog()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="ad-shot-modal" style="display:none">
+  <div class="modal px-panel" style="width:960px;max-width:95vw">
+    <h2>Adobe 错误截图</h2>
+    <div class="adobe-shot-wrap"><img id="ad-shot-img" alt="Adobe 注册错误截图"></div>
+    <div class="modal-actions"><button class="px-btn" type="button" onclick="closeModal('ad-shot-modal')">关闭</button></div>
+  </div>
+</div>
+
+<div id="toast" class="toast" style="display:none"></div>
+<script src="/static/layout.js?v=3"></script>
+<script src="/static/adobe.js?v=7"></script>
+</body>
+</html>

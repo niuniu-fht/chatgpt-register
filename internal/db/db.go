@@ -1,6 +1,8 @@
 package db
 
 import (
+	"fmt"
+
 	"chatgpt-register/internal/emailalias"
 	"chatgpt-register/internal/models"
 
@@ -13,13 +15,42 @@ func Init(path string) (*gorm.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := db.AutoMigrate(&models.Registration{}, &models.Mailbox{}, &models.Setting{}, &models.Admin{}); err != nil {
+	if err := configureSQLite(db); err != nil {
+		return nil, err
+	}
+	if err := db.AutoMigrate(&models.Registration{}, &models.AdobeRegistration{}, &models.Mailbox{}, &models.Setting{}, &models.Admin{}); err != nil {
 		return nil, err
 	}
 	normalizeLegacyStatuses(db)
 	reclaimOrphanRegistering(db)
+	reclaimOrphanAdobeRegistering(db)
 	backfillRegistrationMailboxIDs(db)
 	return db, nil
+}
+
+func configureSQLite(db *gorm.DB) error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return fmt.Errorf("获取 SQLite 连接池: %w", err)
+	}
+	// SQLite only has one writer. A single pooled connection prevents concurrent
+	// GORM writes from contending with each other while browser jobs stay parallel.
+	sqlDB.SetMaxOpenConns(1)
+	for _, pragma := range []string{
+		"PRAGMA journal_mode=WAL",
+		"PRAGMA synchronous=NORMAL",
+		"PRAGMA busy_timeout=10000",
+	} {
+		if err := db.Exec(pragma).Error; err != nil {
+			return fmt.Errorf("配置 SQLite: %w", err)
+		}
+	}
+	return nil
+}
+
+func reclaimOrphanAdobeRegistering(db *gorm.DB) {
+	db.Model(&models.AdobeRegistration{}).Where("status = ?", "registering").
+		Updates(map[string]any{"status": "register_failed", "note": "程序重启中断，可重新生产"})
 }
 
 // reclaimOrphanRegistering 启动时把残留的 registering 记录标为 register_failed。

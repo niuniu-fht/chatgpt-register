@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"chatgpt-register/internal/adobeproducer"
+	"chatgpt-register/internal/adobesession"
 	"chatgpt-register/internal/auth"
 	"chatgpt-register/internal/browserboot"
 	"chatgpt-register/internal/mailfetch"
@@ -15,16 +17,21 @@ import (
 )
 
 type Handler struct {
-	DB       *gorm.DB
-	Mail     *mailfetch.Client
-	Auth     *auth.Service
-	Producer *producer.Producer
-	Browser  *browserboot.Manager
+	DB            *gorm.DB
+	Mail          *mailfetch.Client
+	Auth          *auth.Service
+	Producer      *producer.Producer
+	Browser       *browserboot.Manager
+	Adobe         *adobesession.Manager
+	AdobeProducer *adobeproducer.Producer
 }
 
 func New(db *gorm.DB, authSvc *auth.Service, browser *browserboot.Manager) *Handler {
 	mail := mailfetch.New()
-	return &Handler{DB: db, Mail: mail, Auth: authSvc, Producer: producer.New(db, mail), Browser: browser}
+	return &Handler{
+		DB: db, Mail: mail, Auth: authSvc, Producer: producer.New(db, mail), Browser: browser,
+		Adobe: adobesession.New(), AdobeProducer: adobeproducer.New(db),
+	}
 }
 
 type registrationInput struct {

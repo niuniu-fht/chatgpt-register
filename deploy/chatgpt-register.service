@@ -1,0 +1,20 @@
+[Unit]
+Description=ChatGPT and Adobe registration manager
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/chatgpt-register
+ExecStart=/opt/chatgpt-register/chatgpt-register
+Environment=ADDR=10.255.1.1:9010
+Environment=ADOBE_BROWSER_MODE=cloak
+# CLOAK_BROWSER_PATH 可按需覆盖；省略时由程序自动检测并下载当前稳定版
+Environment=ADOBE_HEADLESS=1
+Environment=ADOBE_MAX_CONCURRENCY=5
+Restart=on-failure
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

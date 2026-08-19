@@ -14,6 +14,38 @@
 
     <div class="settings-grid">
       <div class="px-panel settings-card">
+		<div class="settings-head">
+		  <span class="settings-icon blue">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M12 3 4 7v5c0 5 3.4 8 8 9 4.6-1 8-4 8-9V7l-8-4Z"/></svg>
+		  </span>
+		  <div>
+			<h2>YesCaptcha</h2>
+			<p>Adobe Arkose 图像验证</p>
+		  </div>
+		</div>
+		<label class="switch-row">
+		  <input id="set-yescaptcha-enabled" type="checkbox">
+		  <span class="switch-ui"></span>
+		  <span class="switch-label">遇到 Arkose 验证时自动识别</span>
+		</label>
+		<div class="field">
+		  <label>API 节点</label>
+		  <select id="set-yescaptcha-url" class="px-input">
+			<option value="https://api.yescaptcha.com">国际节点</option>
+			<option value="https://cn.yescaptcha.com">国内节点</option>
+		  </select>
+		</div>
+		<div class="field">
+		  <label>API Key</label>
+		  <span class="field-hint">用于 FunCaptchaClassification，保存在本系统设置中</span>
+		  <input id="set-yescaptcha-key" class="px-input" type="password" autocomplete="new-password" spellcheck="false" placeholder="YesCaptcha Client Key">
+		</div>
+		<div class="settings-foot">
+		  <button class="px-btn primary" onclick="saveYesCaptcha()">保存验证码配置</button>
+		</div>
+	  </div>
+
+	  <div class="px-panel settings-card">
         <div class="settings-head">
           <span class="settings-icon blue">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="9"/></svg>
@@ -139,13 +171,13 @@
           </span>
           <div>
             <h2>代理配置</h2>
-            <p>注册时通过代理访问，降低风控</p>
+            <p>ChatGPT 与 Adobe 注册共用代理池</p>
           </div>
         </div>
         <label class="switch-row">
           <input id="set-proxy-enabled" type="checkbox">
           <span class="switch-ui"></span>
-          <span class="switch-label">启用代理</span>
+          <span class="switch-label">启用注册代理</span>
         </label>
         <div class="field">
           <div class="field-label-row">
@@ -217,6 +249,27 @@ async function loadSettings() {
   document.getElementById('set-replenish-user').value = d.replenish_username || '';
   document.getElementById('set-replenish-pass').value = d.replenish_password || '';
   document.getElementById('set-replenish-autoproduce').checked = d.replenish_autoproduce === '1';
+
+  document.getElementById('set-yescaptcha-enabled').checked = d.yescaptcha_enabled === '1';
+  document.getElementById('set-yescaptcha-url').value = d.yescaptcha_api_url || 'https://api.yescaptcha.com';
+  document.getElementById('set-yescaptcha-key').value = d.yescaptcha_api_key || '';
+}
+
+async function saveYesCaptcha() {
+  const enabled = document.getElementById('set-yescaptcha-enabled').checked;
+  const key = document.getElementById('set-yescaptcha-key').value.trim();
+  if (enabled && !key) return toast('启用 YesCaptcha 需填写 API Key', true);
+  const r = await api('/api/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      yescaptcha_enabled: enabled ? '1' : '0',
+      yescaptcha_api_url: document.getElementById('set-yescaptcha-url').value,
+      yescaptcha_api_key: key,
+    }),
+  });
+  if (!r.ok) return toast('保存失败', true);
+  toast('YesCaptcha 配置已保存');
 }
 
 async function saveReplenish() {

@@ -1,4 +1,9 @@
 adskull.db
+adobe-output/
+server-*.log
+server-*.err
+adobe-chrome-profile/
+adobe-smoke-profile/
 adskull-register
 adskull-register.exe
 dist/
