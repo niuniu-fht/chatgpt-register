@@ -303,8 +303,9 @@ func (p *Producer) produceOne(ctx context.Context, account *models.AdobeRegistra
 					FirstName: firstName, LastName: lastName,
 					BirthYear: account.BirthYear, BirthMonth: account.BirthMonth,
 					Country: account.Country, Headless: opts.Headless, Captcha: captcha,
-					Proxy:      proxy,
-					BrowserBin: opts.BrowserPath, CloakBrowser: opts.BrowserMode == "cloak",
+					ExtensionCaptcha: strings.TrimSpace(os.Getenv("YESCAPTCHA_EXTENSION_PATH")) != "",
+					Proxy:            proxy,
+					BrowserBin:       opts.BrowserPath, CloakBrowser: opts.BrowserMode == "cloak",
 					Log: func(format string, args ...any) {
 						appendLog(fmt.Sprintf(format, args...))
 					},

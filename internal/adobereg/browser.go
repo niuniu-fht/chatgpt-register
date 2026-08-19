@@ -561,6 +561,12 @@ func setSelect(page *rod.Page, selector, value string) error {
 
 func waitForSuccess(ctx context.Context, browser *rod.Browser, page *rod.Page, in Input) error {
 	deadline := time.Now().Add(90 * time.Second)
+	var captchaWaitStarted time.Time
+	if in.ExtensionCaptcha {
+		// Keep the headed page attached while the extension completes the challenge.
+		deadline = time.Now().Add(180 * time.Second)
+		in.logf("验证码由浏览器插件处理，等待插件完成并返回 Adobe 控制台")
+	}
 	captchaAttempted := false
 	lastProgressLog := time.Now()
 	for time.Now().Before(deadline) {
@@ -589,6 +595,17 @@ func waitForSuccess(ctx context.Context, browser *rod.Browser, page *rod.Page, i
 		}
 		if captchaText(lower) || quickCaptchaFrame(pg) || quickStartPuzzle(pg) {
 			if in.Captcha == nil {
+				if in.ExtensionCaptcha {
+					if captchaWaitStarted.IsZero() {
+						captchaWaitStarted = time.Now()
+					}
+					if time.Since(lastProgressLog) >= 10*time.Second {
+						in.logf("仍在等待浏览器插件完成验证码，已持续 %d 秒", int(time.Since(captchaWaitStarted).Seconds()))
+						lastProgressLog = time.Now()
+					}
+					time.Sleep(500 * time.Millisecond)
+					continue
+				}
 				return fmt.Errorf("captcha_required")
 			}
 			if !captchaAttempted {

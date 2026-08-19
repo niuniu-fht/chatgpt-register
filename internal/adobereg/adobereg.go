@@ -28,8 +28,12 @@ type Input struct {
 	BrowserBin   string
 	CloakBrowser bool
 	Headless     bool
-	DryRun       bool
-	Captcha      CaptchaClassifier
+	// ExtensionCaptcha indicates that a browser extension owns CAPTCHA solving.
+	// In this mode the registration flow waits for the extension instead of
+	// handing an empty classifier to the API solver.
+	ExtensionCaptcha bool
+	DryRun           bool
+	Captcha          CaptchaClassifier
 
 	Log      func(format string, args ...any)
 	SaveShot func(png []byte)
