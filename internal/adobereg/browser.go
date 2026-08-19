@@ -40,6 +40,20 @@ func registerBrowser(ctx context.Context, in Input) (result *Result, err error) 
 		return nil, fmt.Errorf("创建浏览器临时配置: %w", err)
 	}
 	defer os.RemoveAll(profileDir)
+	licenseStatusFile := ""
+	if in.CloakBrowser {
+		// CloakBrowser writes a numeric denial code here when license validation
+		// finishes after CDP has connected. Without this file Rod only sees a
+		// generic loopback socket reset and the failure is easily misdiagnosed as
+		// a proxy problem.
+		licenseStatusFile = filepath.Join(profileDir, "cloak-license-status.json")
+		defer func() {
+			if licenseErr := cloakLicenseStatusError(licenseStatusFile); licenseErr != nil {
+				result = nil
+				err = licenseErr
+			}
+		}()
+	}
 
 	l := launcher.NewUserMode().
 		UserDataDir(profileDir).
@@ -58,6 +72,7 @@ func registerBrowser(ctx context.Context, in Input) (result *Result, err error) 
 			timezone = geo.Timezone.ID
 		}
 		l = l.Bin(in.BrowserBin).
+			Env(append(os.Environ(), "CLOAKBROWSER_LICENSE_STATUS_FILE="+licenseStatusFile)...).
 			Set("fingerprint", strconv.FormatUint(cloakSeed, 10)).
 			Set("fingerprint-platform", "windows").
 			Set("fingerprint-timezone", timezone).
@@ -250,6 +265,29 @@ func registerBrowser(ctx context.Context, in Input) (result *Result, err error) 
 	}
 	result.Status = "registered"
 	return result, nil
+}
+
+func cloakLicenseStatusError(path string) error {
+	data, readErr := os.ReadFile(path)
+	if readErr != nil {
+		return nil
+	}
+	code, parseErr := strconv.Atoi(strings.TrimSpace(string(data)))
+	if parseErr != nil {
+		return nil
+	}
+	switch code {
+	case 76:
+		return fmt.Errorf("CloakBrowser 并发席位已占用，请等待上一浏览器会话释放")
+	case 77:
+		return fmt.Errorf("CloakBrowser license 无效、已过期或未加载")
+	case 78:
+		return fmt.Errorf("CloakBrowser 当前版本不在 license 授权范围内")
+	case 79:
+		return fmt.Errorf("CloakBrowser license 校验服务暂时不可用")
+	default:
+		return fmt.Errorf("CloakBrowser license 拒绝启动，代码 %d", code)
+	}
 }
 
 func waitForSignupForm(ctx context.Context, page *rod.Page, in Input) error {

@@ -217,11 +217,15 @@ async function openAdobeProduce() {
 function onAdobeBrowserMode() {
 	const cloak = document.getElementById('ad-browser-mode').value === 'cloak';
 	document.getElementById('ad-cloak-path-field').style.display = cloak ? '' : 'none';
+	const concurrency = document.getElementById('ad-produce-concurrency');
+	if (cloak) concurrency.value = 1;
+	concurrency.disabled = cloak;
 }
 
 async function startAdobeProduce() {
 	const browserMode = document.getElementById('ad-browser-mode').value;
 	const browserPath = document.getElementById('ad-cloak-path').value.trim();
+	if (browserMode === 'cloak') document.getElementById('ad-produce-concurrency').value = 1;
   const payload = {
     count:Number(document.getElementById('ad-produce-count').value),
     concurrency:Number(document.getElementById('ad-produce-concurrency').value),

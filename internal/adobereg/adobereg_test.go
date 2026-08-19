@@ -3,6 +3,9 @@ package adobereg
 import (
 	"image"
 	"image/color"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -51,6 +54,17 @@ func TestAccountAlreadyExistsText(t *testing.T) {
 	}
 	if isAccountAlreadyExistsText("Create an Adobe account") {
 		t.Fatal("registration heading must not be treated as an existing account")
+	}
+}
+
+func TestCloakLicenseStatusError(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "license-status.json")
+	if err := os.WriteFile(path, []byte("76"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	err := cloakLicenseStatusError(path)
+	if err == nil || !strings.Contains(err.Error(), "并发席位已占用") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 

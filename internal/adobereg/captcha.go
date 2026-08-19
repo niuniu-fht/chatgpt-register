@@ -134,6 +134,9 @@ func solveArkoseCaptcha(ctx context.Context, root *rod.Page, in Input) error {
 		}
 		label := fmt.Sprintf("第 %d 组第 %d 题", challenge, action)
 		in.logf("验证码%s，题目: %s", label, truncate(question, 180))
+		if width, height := pngDimensions(imageBytes); width > 0 {
+			in.logf("验证码%s已截取完整题图: %dx%d，PNG %d 字节，提交为 Base64", label, width, height, len(imageBytes))
+		}
 		objects, err := classifyWithRetry(ctx, in, [][]byte{imageBytes}, question, label)
 		if err != nil {
 			return err
@@ -582,6 +585,17 @@ func captureCaptchaRound(page *rod.Page) (string, *rod.Element, []byte, error) {
 	}
 	if challenge, challengeErr := deepSearchFirst(pg, "#game_children_challenge", 2*time.Second); challengeErr == nil {
 		if image, shotErr := challenge.Screenshot(proto.PageCaptureScreenshotFormatPng, 100); shotErr == nil && len(image) > 0 {
+			// Arkose sometimes exposes only the 334x115 image strip through this
+			// node. That crop cuts off the lower part of the scene, so use the
+			// nested challenge page screenshot when the node is visibly truncated.
+			if w, h := pngDimensions(image); w >= 300 && h >= 180 {
+				return question, challenge, image, nil
+			}
+			if full, fullErr := pg.Screenshot(false, nil); fullErr == nil && len(full) > 0 {
+				if w, h := pngDimensions(full); w > 0 && h > 0 {
+					return question, challenge, full, nil
+				}
+			}
 			return question, challenge, image, nil
 		}
 	}
@@ -617,6 +631,15 @@ func captureCaptchaRound(page *rod.Page) (string, *rod.Element, []byte, error) {
 		return "", nil, nil, fmt.Errorf("截取验证码题图: %w", err)
 	}
 	return question, imageElement, image, nil
+}
+
+func pngDimensions(data []byte) (int, int) {
+	img, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return 0, 0
+	}
+	b := img.Bounds()
+	return b.Dx(), b.Dy()
 }
 
 func captchaQuestion(page *rod.Page) string {

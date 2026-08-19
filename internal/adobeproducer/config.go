@@ -37,6 +37,12 @@ func (p *Producer) configureStartOptions(opts *StartOptions) error {
 		return fmt.Errorf("Adobe 浏览器模式不正确")
 	}
 	if opts.BrowserMode == "cloak" {
+		// The default CloakBrowser free license provides one active seat. Keep
+		// producer scheduling serial so a UI value cannot make later launches
+		// evict or reject the active browser.
+		if opts.Concurrency > 1 {
+			opts.Concurrency = 1
+		}
 		envBrowserPath := strings.TrimSpace(os.Getenv("CLOAK_BROWSER_PATH"))
 		if strings.TrimSpace(opts.BrowserPath) == "" {
 			opts.BrowserPath = envBrowserPath
