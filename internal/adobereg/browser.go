@@ -568,6 +568,7 @@ func setSelect(page *rod.Page, selector, value string) error {
 }
 
 func waitForSuccess(ctx context.Context, browser *rod.Browser, page *rod.Page, in Input) error {
+	waitStarted := time.Now()
 	deadline := time.Now().Add(90 * time.Second)
 	var captchaWaitStarted time.Time
 	if in.ExtensionCaptcha {
@@ -646,7 +647,7 @@ func waitForSuccess(ctx context.Context, browser *rod.Browser, page *rod.Page, i
 			}
 		}
 		if time.Since(lastProgressLog) >= 10*time.Second {
-			in.logf("仍在等待 Adobe 返回结果，已持续 %d 秒", 90-int(time.Until(deadline).Seconds()))
+			in.logf("仍在等待 Adobe 返回结果，已持续 %d 秒", int(time.Since(waitStarted).Seconds()))
 			lastProgressLog = time.Now()
 		}
 		time.Sleep(500 * time.Millisecond)
